@@ -18,7 +18,7 @@ abstract contract ICERC20 is ERC20 {
 
     function exchangeRateStored() external view virtual returns (uint256);
 
-    function accrualBlockNumber() external view virtual returns (uint256);
+    function accrualBlockTimestamp() external view virtual returns (uint256);
 
     function redeemUnderlying(uint256 underlyingAmount) external virtual returns (uint256);
 

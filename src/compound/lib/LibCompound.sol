@@ -15,9 +15,9 @@ library LibCompound {
     }
 
     function viewExchangeRate(ICERC20 cToken) internal view returns (uint256) {
-        uint256 accrualBlockNumberPrior = cToken.accrualBlockNumber();
+        uint256 accrualBlockTimestampPrior = cToken.accrualBlockTimestamp();
 
-        if (accrualBlockNumberPrior == block.number) {
+        if (accrualBlockTimestampPrior == block.timestamp) {
             return cToken.exchangeRateStored();
         }
 
@@ -30,7 +30,7 @@ library LibCompound {
         require(borrowRateMantissa <= 0.0005e16, "RATE_TOO_HIGH"); // Same as borrowRateMaxMantissa in CTokenInterfaces.sol
 
         uint256 interestAccumulated =
-            (borrowRateMantissa * (block.number - accrualBlockNumberPrior)).mulWadDown(borrowsPrior);
+            (borrowRateMantissa * (block.timestamp - accrualBlockTimestampPrior)).mulWadDown(borrowsPrior);
 
         uint256 totalReserves = cToken.reserveFactorMantissa().mulWadDown(interestAccumulated) + reservesPrior;
         uint256 totalBorrows = interestAccumulated + borrowsPrior;
