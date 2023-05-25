@@ -19,8 +19,8 @@ contract OvixERC4626Factory is ERC4626Factory {
     /// Errors
     /// -----------------------------------------------------------------------
 
-    /// @notice Thrown when trying to deploy an OvixERC4626 vault using an asset without a cToken
-    error OvixERC4626Factory__CTokenNonexistent();
+    /// @notice Thrown when trying to deploy an OvixERC4626 vault using an asset without a oToken
+    error OvixERC4626Factory__OTokenNonexistent();
 
     /// -----------------------------------------------------------------------
     /// Immutable params
@@ -35,14 +35,14 @@ contract OvixERC4626Factory is ERC4626Factory {
     /// @notice The Ovix comptroller contract
     IComptroller public immutable comptroller;
 
-    /// @notice The Ovix cEther address
+    /// @notice The Ovix oNative address (oMatic on PoS, oETH on zkEVM)
     address internal immutable oNativeAddress;
 
     /// -----------------------------------------------------------------------
     /// Storage variables
     /// -----------------------------------------------------------------------
 
-    /// @notice Maps underlying asset to the corresponding cToken
+    /// @notice Maps underlying asset to the corresponding oToken
     mapping(ERC20 => ICERC20) public underlyingToOToken;
 
     /// -----------------------------------------------------------------------
@@ -58,12 +58,12 @@ contract OvixERC4626Factory is ERC4626Factory {
         oNativeAddress = oNativeAddress_;
         rewardRecipient = rewardRecipient_;
         vix = ERC20(comptroller_.getVixAddress());
-        // initialize underlyingToCToken
-        ICERC20[] memory allCTokens = comptroller_.getAllMarkets();
-        uint256 numCTokens = allCTokens.length;
+        // initialize underlyingToOToken
+        ICERC20[] memory allOTokens = comptroller_.getAllMarkets();
+        uint256 numOTokens = allOTokens.length;
         ICERC20 oToken;
-        for (uint256 i; i < numCTokens; ) {
-            oToken = allCTokens[i];
+        for (uint256 i; i < numOTokens; ) {
+            oToken = allOTokens[i];
             if (address(oToken) != oNativeAddress_) {
                 underlyingToOToken[oToken.underlying()] = oToken;
             }
@@ -82,15 +82,15 @@ contract OvixERC4626Factory is ERC4626Factory {
     function createERC4626(
         ERC20 asset
     ) external virtual override returns (ERC4626 vault) {
-        ICERC20 cToken = underlyingToOToken[asset];
-        if (address(cToken) == address(0)) {
-            revert OvixERC4626Factory__CTokenNonexistent();
+        ICERC20 oToken = underlyingToOToken[asset];
+        if (address(oToken) == address(0)) {
+            revert OvixERC4626Factory__OTokenNonexistent();
         }
 
         vault = new OvixERC4626{salt: bytes32(0)}(
             asset,
             vix,
-            cToken,
+            oToken,
             rewardRecipient,
             comptroller
         );
@@ -122,20 +122,20 @@ contract OvixERC4626Factory is ERC4626Factory {
         );
     }
 
-    /// @notice Updates the underlyingToCToken mapping in order to support newly added cTokens
-    /// @dev This is needed because Ovix doesn't have an onchain registry of cTokens corresponding to underlying assets.
-    /// @param newCTokenIndices The indices of the new cTokens to register in the comptroller.allMarkets array
-    function updateUnderlyingToCToken(
-        uint256[] calldata newCTokenIndices
+    /// @notice Updates the underlyingToOToken mapping in order to support newly added oTokens
+    /// @dev This is needed because Ovix doesn't have an onchain registry of oTokens corresponding to underlying assets.
+    /// @param newOTokenIndices The indices of the new oTokens to register in the comptroller.allMarkets array
+    function updateUnderlyingToOToken(
+        uint256[] calldata newOTokenIndices
     ) external {
-        uint256 numCTokens = newCTokenIndices.length;
-        ICERC20 cToken;
+        uint256 numOTokens = newOTokenIndices.length;
+        ICERC20 oToken;
         uint256 index;
-        for (uint256 i; i < numCTokens; ) {
-            index = newCTokenIndices[i];
-            cToken = comptroller.allMarkets(index);
-            if (address(cToken) != oNativeAddress) {
-                underlyingToOToken[cToken.underlying()] = cToken;
+        for (uint256 i; i < numOTokens; ) {
+            index = newOTokenIndices[i];
+            oToken = comptroller.allMarkets(index);
+            if (address(oToken) != oNativeAddress) {
+                underlyingToOToken[oToken.underlying()] = oToken;
             }
 
             unchecked {
