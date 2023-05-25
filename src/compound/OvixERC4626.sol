@@ -9,10 +9,10 @@ import {ICERC20} from "./external/ICERC20.sol";
 import {LibCompound} from "./lib/LibCompound.sol";
 import {IComptroller} from "./external/IComptroller.sol";
 
-/// @title CompoundERC4626
+/// @title OvixERC4626
 /// @author zefram.eth
-/// @notice ERC4626 wrapper for Compound Finance
-contract CompoundERC4626 is ERC4626 {
+/// @notice ERC4626 wrapper for Ovix Finance
+contract OvixERC4626 is ERC4626 {
     /// -----------------------------------------------------------------------
     /// Libraries usage
     /// -----------------------------------------------------------------------
@@ -30,9 +30,9 @@ contract CompoundERC4626 is ERC4626 {
     /// Errors
     /// -----------------------------------------------------------------------
 
-    /// @notice Thrown when a call to Compound returned an error.
-    /// @param errorCode The error code returned by Compound
-    error CompoundERC4626__CompoundError(uint256 errorCode);
+    /// @notice Thrown when a call to Ovix returned an error.
+    /// @param errorCode The error code returned by Ovix
+    error OvixERC4626__OvixError(uint256 errorCode);
 
     /// -----------------------------------------------------------------------
     /// Constants
@@ -44,44 +44,44 @@ contract CompoundERC4626 is ERC4626 {
     /// Immutable params
     /// -----------------------------------------------------------------------
 
-    /// @notice The COMP token contract
-    ERC20 public immutable comp;
+    /// @notice The VIX token contract
+    ERC20 public immutable vix;
 
-    /// @notice The Compound cToken contract
-    ICERC20 public immutable cToken;
+    /// @notice The Ovix oToken contract
+    ICERC20 public immutable oToken;
 
     /// @notice The address that will receive the liquidity mining rewards (if any)
     address public immutable rewardRecipient;
 
-    /// @notice The Compound comptroller contract
+    /// @notice The Ovix comptroller contract
     IComptroller public immutable comptroller;
 
     /// -----------------------------------------------------------------------
     /// Constructor
     /// -----------------------------------------------------------------------
 
-    constructor(ERC20 asset_, ERC20 comp_, ICERC20 cToken_, address rewardRecipient_, IComptroller comptroller_)
+    constructor(ERC20 asset_, ERC20 comp_, ICERC20 oToken_, address rewardRecipient_, IComptroller comptroller_)
         ERC4626(asset_, _vaultName(asset_), _vaultSymbol(asset_))
     {
-        comp = comp_;
-        cToken = cToken_;
+        vix = comp_;
+        oToken = oToken_;
         comptroller = comptroller_;
         rewardRecipient = rewardRecipient_;
     }
 
     /// -----------------------------------------------------------------------
-    /// Compound liquidity mining
+    /// Ovix liquidity mining
     /// -----------------------------------------------------------------------
 
-    /// @notice Claims liquidity mining rewards from Compound and sends it to rewardRecipient
+    /// @notice Claims liquidity mining rewards from Ovix and sends it to rewardRecipient
     function claimRewards() external {
         address[] memory holders = new address[](1);
         holders[0] = address(this);
-        ICERC20[] memory cTokens = new ICERC20[](1);
-        cTokens[0] = cToken;
-        comptroller.claimRewards(holders, cTokens, false, true);
-        uint256 amount = comp.balanceOf(address(this));
-        comp.safeTransfer(rewardRecipient, amount);
+        ICERC20[] memory oTokens = new ICERC20[](1);
+        oTokens[0] = oToken;
+        comptroller.claimRewards(holders, oTokens, false, true);
+        uint256 amount = vix.balanceOf(address(this));
+        vix.safeTransfer(rewardRecipient, amount);
         emit ClaimRewards(amount);
     }
 
@@ -90,60 +90,70 @@ contract CompoundERC4626 is ERC4626 {
     /// -----------------------------------------------------------------------
 
     function totalAssets() public view virtual override returns (uint256) {
-        return cToken.viewUnderlyingBalanceOf(address(this));
+        return oToken.viewUnderlyingBalanceOf(address(this));
     }
 
     function beforeWithdraw(uint256 assets, uint256 /*shares*/ ) internal virtual override {
         /// -----------------------------------------------------------------------
-        /// Withdraw assets from Compound
+        /// Withdraw assets from Ovix
         /// -----------------------------------------------------------------------
 
-        uint256 errorCode = cToken.redeemUnderlying(assets);
+        uint256 errorCode = oToken.redeemUnderlying(assets);
         if (errorCode != NO_ERROR) {
-            revert CompoundERC4626__CompoundError(errorCode);
+            revert OvixERC4626__OvixError(errorCode);
         }
     }
 
     function afterDeposit(uint256 assets, uint256 /*shares*/ ) internal virtual override {
         /// -----------------------------------------------------------------------
-        /// Deposit assets into Compound
+        /// Deposit assets into Ovix
         /// -----------------------------------------------------------------------
 
-        // approve to cToken
-        asset.safeApprove(address(cToken), assets);
+        // approve to oToken
+        asset.safeApprove(address(oToken), assets);
 
-        // deposit into cToken
-        uint256 errorCode = cToken.mint(assets);
+        // deposit into oToken
+        uint256 errorCode = oToken.mint(assets);
         if (errorCode != NO_ERROR) {
-            revert CompoundERC4626__CompoundError(errorCode);
+            revert OvixERC4626__OvixError(errorCode);
         }
     }
 
     function maxDeposit(address) public view override returns (uint256) {
-        if (comptroller.guardianPaused(cToken)) {
+        if (comptroller.guardianPaused(oToken)) {
             return 0;
         }
         return type(uint256).max;
     }
 
     function maxMint(address) public view override returns (uint256) {
-        if (comptroller.guardianPaused(cToken)) {
+        if (comptroller.guardianPaused(oToken)) {
             return 0;
         }
         return type(uint256).max;
     }
 
     function maxWithdraw(address owner) public view override returns (uint256) {
-        uint256 cash = cToken.getCash();
+        uint256 cash = oToken.getCash();
         uint256 assetsBalance = convertToAssets(balanceOf[owner]);
         return cash < assetsBalance ? cash : assetsBalance;
     }
 
     function maxRedeem(address owner) public view override returns (uint256) {
-        uint256 cash = cToken.getCash();
+        uint256 cash = oToken.getCash();
         uint256 cashInShares = convertToShares(cash);
         uint256 shareBalance = balanceOf[owner];
         return cashInShares < shareBalance ? cashInShares : shareBalance;
+    }
+
+    // underlying to oToken exchange rate
+    function exchangeRate() public view returns (uint256) {
+        return oToken.viewExchangeRate();
+    }
+
+    // accumulated preVIX rewards
+    function preVIXBalance() public view returns (uint256) {
+        return vix.balanceOf(address(this));
     }
 
     /// -----------------------------------------------------------------------

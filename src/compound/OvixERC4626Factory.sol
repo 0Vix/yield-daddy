@@ -5,45 +5,45 @@ import {ERC20} from "solmate/tokens/ERC20.sol";
 import {ERC4626} from "solmate/mixins/ERC4626.sol";
 
 import {ICERC20} from "./external/ICERC20.sol";
-import {CompoundERC4626} from "./CompoundERC4626.sol";
+import {OvixERC4626} from "./OvixERC4626.sol";
 import {IComptroller} from "./external/IComptroller.sol";
 import {ERC4626Factory} from "../base/ERC4626Factory.sol";
 
 import "forge-std/console.sol";
 
-/// @title CompoundERC4626Factory
+/// @title OvixERC4626Factory
 /// @author zefram.eth
-/// @notice Factory for creating CompoundERC4626 contracts
-contract CompoundERC4626Factory is ERC4626Factory {
+/// @notice Factory for creating OvixERC4626 contracts
+contract OvixERC4626Factory is ERC4626Factory {
     /// -----------------------------------------------------------------------
     /// Errors
     /// -----------------------------------------------------------------------
 
-    /// @notice Thrown when trying to deploy an CompoundERC4626 vault using an asset without a cToken
-    error CompoundERC4626Factory__CTokenNonexistent();
+    /// @notice Thrown when trying to deploy an OvixERC4626 vault using an asset without a cToken
+    error OvixERC4626Factory__CTokenNonexistent();
 
     /// -----------------------------------------------------------------------
     /// Immutable params
     /// -----------------------------------------------------------------------
 
     /// @notice The COMP token contract
-    ERC20 public immutable comp;
+    ERC20 public immutable vix;
 
     /// @notice The address that will receive the liquidity mining rewards (if any)
     address public immutable rewardRecipient;
 
-    /// @notice The Compound comptroller contract
+    /// @notice The Ovix comptroller contract
     IComptroller public immutable comptroller;
 
-    /// @notice The Compound cEther address
-    address internal immutable cEtherAddress;
+    /// @notice The Ovix cEther address
+    address internal immutable oNativeAddress;
 
     /// -----------------------------------------------------------------------
     /// Storage variables
     /// -----------------------------------------------------------------------
 
     /// @notice Maps underlying asset to the corresponding cToken
-    mapping(ERC20 => ICERC20) public underlyingToCToken;
+    mapping(ERC20 => ICERC20) public underlyingToOToken;
 
     /// -----------------------------------------------------------------------
     /// Constructor
@@ -51,21 +51,21 @@ contract CompoundERC4626Factory is ERC4626Factory {
 
     constructor(
         IComptroller comptroller_,
-        address cEtherAddress_,
+        address oNativeAddress_,
         address rewardRecipient_
     ) {
         comptroller = comptroller_;
-        cEtherAddress = cEtherAddress_;
+        oNativeAddress = oNativeAddress_;
         rewardRecipient = rewardRecipient_;
-        comp = ERC20(comptroller_.getVixAddress());
+        vix = ERC20(comptroller_.getVixAddress());
         // initialize underlyingToCToken
         ICERC20[] memory allCTokens = comptroller_.getAllMarkets();
         uint256 numCTokens = allCTokens.length;
-        ICERC20 cToken;
+        ICERC20 oToken;
         for (uint256 i; i < numCTokens; ) {
-            cToken = allCTokens[i];
-            if (address(cToken) != cEtherAddress_) {
-                underlyingToCToken[cToken.underlying()] = cToken;
+            oToken = allCTokens[i];
+            if (address(oToken) != oNativeAddress_) {
+                underlyingToOToken[oToken.underlying()] = oToken;
             }
 
             unchecked {
@@ -82,14 +82,14 @@ contract CompoundERC4626Factory is ERC4626Factory {
     function createERC4626(
         ERC20 asset
     ) external virtual override returns (ERC4626 vault) {
-        ICERC20 cToken = underlyingToCToken[asset];
+        ICERC20 cToken = underlyingToOToken[asset];
         if (address(cToken) == address(0)) {
-            revert CompoundERC4626Factory__CTokenNonexistent();
+            revert OvixERC4626Factory__CTokenNonexistent();
         }
 
-        vault = new CompoundERC4626{salt: bytes32(0)}(
+        vault = new OvixERC4626{salt: bytes32(0)}(
             asset,
-            comp,
+            vix,
             cToken,
             rewardRecipient,
             comptroller
@@ -107,12 +107,12 @@ contract CompoundERC4626Factory is ERC4626Factory {
                 keccak256(
                     abi.encodePacked(
                         // Deployment bytecode:
-                        type(CompoundERC4626).creationCode,
+                        type(OvixERC4626).creationCode,
                         // Constructor arguments:
                         abi.encode(
                             asset,
-                            comp,
-                            underlyingToCToken[asset],
+                            vix,
+                            underlyingToOToken[asset],
                             rewardRecipient,
                             comptroller
                         )
@@ -123,7 +123,7 @@ contract CompoundERC4626Factory is ERC4626Factory {
     }
 
     /// @notice Updates the underlyingToCToken mapping in order to support newly added cTokens
-    /// @dev This is needed because Compound doesn't have an onchain registry of cTokens corresponding to underlying assets.
+    /// @dev This is needed because Ovix doesn't have an onchain registry of cTokens corresponding to underlying assets.
     /// @param newCTokenIndices The indices of the new cTokens to register in the comptroller.allMarkets array
     function updateUnderlyingToCToken(
         uint256[] calldata newCTokenIndices
@@ -134,8 +134,8 @@ contract CompoundERC4626Factory is ERC4626Factory {
         for (uint256 i; i < numCTokens; ) {
             index = newCTokenIndices[i];
             cToken = comptroller.allMarkets(index);
-            if (address(cToken) != cEtherAddress) {
-                underlyingToCToken[cToken.underlying()] = cToken;
+            if (address(cToken) != oNativeAddress) {
+                underlyingToOToken[cToken.underlying()] = cToken;
             }
 
             unchecked {
