@@ -7,11 +7,11 @@ import {console2} from "forge-std/console2.sol";
 import {ERC20} from "solmate/tokens/ERC20.sol";
 
 import {ERC20Mock} from "../mocks/ERC20Mock.sol";
-import {CompoundERC4626} from "../../compound/CompoundERC4626.sol";
+import {OvixERC4626} from "../../compound/OvixERC4626.sol";
 import {IComptroller} from "../../compound/external/IComptroller.sol";
-import {CompoundERC4626Factory} from "../../compound/CompoundERC4626Factory.sol";
+import {OvixERC4626Factory} from "../../compound/OvixERC4626Factory.sol";
 
-contract CompoundERC4626Test is Test {
+contract OvixERC4626Test is Test {
     address constant rewardRecipient = address(0x01);
 
     ERC20 constant underlying = dai;
@@ -20,12 +20,12 @@ contract CompoundERC4626Test is Test {
     address constant cDaiAddress = 0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643;
     address constant cEtherAddress = 0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5;
 
-    CompoundERC4626 public vault;
-    CompoundERC4626Factory public factory;
+    OvixERC4626 public vault;
+    OvixERC4626Factory public factory;
 
     function setUp() public {
-        factory = new CompoundERC4626Factory(comptroller, cEtherAddress, rewardRecipient);
-        vault = CompoundERC4626(address(factory.createERC4626(dai)));
+        factory = new OvixERC4626Factory(comptroller, cEtherAddress, rewardRecipient);
+        vault = OvixERC4626(address(factory.createERC4626(dai)));
 
         vm.label(address(dai), "DAI");
         vm.label(cDaiAddress, "cDAI");

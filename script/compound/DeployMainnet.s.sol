@@ -6,10 +6,10 @@ import "forge-std/Script.sol";
 import {CREATE3Factory} from "create3-factory/CREATE3Factory.sol";
 
 import {IComptroller} from "../../src/compound/external/IComptroller.sol";
-import {CompoundERC4626Factory} from "../../src/compound/CompoundERC4626Factory.sol";
+import {OvixERC4626Factory} from "../../src/compound/OvixERC4626Factory.sol";
 
 contract DeployScript is Script {
-    function run() public returns (CompoundERC4626Factory deployed) {
+    function run() public returns (OvixERC4626Factory deployed) {
         uint256 deployerPrivateKey = uint256(vm.envBytes32("PRIVATE_KEY"));
         CREATE3Factory create3 = CREATE3Factory(0x9fBB3DF7C40Da2e5A0dE984fFE2CCB7C47cd0ABf);
         IComptroller comptroller = IComptroller(vm.envAddress("COMPOUND_COMPTROLLER_MAINNET"));
@@ -18,11 +18,11 @@ contract DeployScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        deployed = CompoundERC4626Factory(
+        deployed = OvixERC4626Factory(
             create3.deploy(
-                keccak256("CompoundERC4626Factory"),
+                keccak256("OvixERC4626Factory"),
                 bytes.concat(
-                    type(CompoundERC4626Factory).creationCode, abi.encode(comptroller, cEther, rewardRecipient)
+                    type(OvixERC4626Factory).creationCode, abi.encode(comptroller, cEther, rewardRecipient)
                 )
             )
         );
