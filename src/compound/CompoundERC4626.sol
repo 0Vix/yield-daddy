@@ -79,7 +79,7 @@ contract CompoundERC4626 is ERC4626 {
         holders[0] = address(this);
         ICERC20[] memory cTokens = new ICERC20[](1);
         cTokens[0] = cToken;
-        comptroller.claimComp(holders, cTokens, false, true);
+        comptroller.claimRewards(holders, cTokens, false, true);
         uint256 amount = comp.balanceOf(address(this));
         comp.safeTransfer(rewardRecipient, amount);
         emit ClaimRewards(amount);
@@ -120,14 +120,14 @@ contract CompoundERC4626 is ERC4626 {
     }
 
     function maxDeposit(address) public view override returns (uint256) {
-        if (comptroller.mintGuardianPaused(cToken)) {
+        if (comptroller.guardianPaused(cToken)) {
             return 0;
         }
         return type(uint256).max;
     }
 
     function maxMint(address) public view override returns (uint256) {
-        if (comptroller.mintGuardianPaused(cToken)) {
+        if (comptroller.guardianPaused(cToken)) {
             return 0;
         }
         return type(uint256).max;
@@ -151,10 +151,10 @@ contract CompoundERC4626 is ERC4626 {
     /// -----------------------------------------------------------------------
 
     function _vaultName(ERC20 asset_) internal view virtual returns (string memory vaultName) {
-        vaultName = string.concat("ERC4626-Wrapped Compound ", asset_.symbol());
+        vaultName = string.concat("ERC4626-Wrapped 0VIX ", asset_.symbol());
     }
 
     function _vaultSymbol(ERC20 asset_) internal view virtual returns (string memory vaultSymbol) {
-        vaultSymbol = string.concat("wc", asset_.symbol());
+        vaultSymbol = string.concat("wo", asset_.symbol());
     }
 }

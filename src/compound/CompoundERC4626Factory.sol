@@ -9,6 +9,8 @@ import {CompoundERC4626} from "./CompoundERC4626.sol";
 import {IComptroller} from "./external/IComptroller.sol";
 import {ERC4626Factory} from "../base/ERC4626Factory.sol";
 
+import "forge-std/console.sol";
+
 /// @title CompoundERC4626Factory
 /// @author zefram.eth
 /// @notice Factory for creating CompoundERC4626 contracts
@@ -47,17 +49,20 @@ contract CompoundERC4626Factory is ERC4626Factory {
     /// Constructor
     /// -----------------------------------------------------------------------
 
-    constructor(IComptroller comptroller_, address cEtherAddress_, address rewardRecipient_) {
+    constructor(
+        IComptroller comptroller_,
+        address cEtherAddress_,
+        address rewardRecipient_
+    ) {
         comptroller = comptroller_;
         cEtherAddress = cEtherAddress_;
         rewardRecipient = rewardRecipient_;
-        comp = ERC20(comptroller_.getCompAddress());
-
+        comp = ERC20(comptroller_.getVixAddress());
         // initialize underlyingToCToken
         ICERC20[] memory allCTokens = comptroller_.getAllMarkets();
         uint256 numCTokens = allCTokens.length;
         ICERC20 cToken;
-        for (uint256 i; i < numCTokens;) {
+        for (uint256 i; i < numCTokens; ) {
             cToken = allCTokens[i];
             if (address(cToken) != cEtherAddress_) {
                 underlyingToCToken[cToken.underlying()] = cToken;
@@ -74,19 +79,29 @@ contract CompoundERC4626Factory is ERC4626Factory {
     /// -----------------------------------------------------------------------
 
     /// @inheritdoc ERC4626Factory
-    function createERC4626(ERC20 asset) external virtual override returns (ERC4626 vault) {
+    function createERC4626(
+        ERC20 asset
+    ) external virtual override returns (ERC4626 vault) {
         ICERC20 cToken = underlyingToCToken[asset];
         if (address(cToken) == address(0)) {
             revert CompoundERC4626Factory__CTokenNonexistent();
         }
 
-        vault = new CompoundERC4626{salt: bytes32(0)}(asset, comp, cToken, rewardRecipient, comptroller);
+        vault = new CompoundERC4626{salt: bytes32(0)}(
+            asset,
+            comp,
+            cToken,
+            rewardRecipient,
+            comptroller
+        );
 
         emit CreateERC4626(asset, vault);
     }
 
     /// @inheritdoc ERC4626Factory
-    function computeERC4626Address(ERC20 asset) external view virtual override returns (ERC4626 vault) {
+    function computeERC4626Address(
+        ERC20 asset
+    ) external view virtual override returns (ERC4626 vault) {
         vault = ERC4626(
             _computeCreate2Address(
                 keccak256(
@@ -94,7 +109,13 @@ contract CompoundERC4626Factory is ERC4626Factory {
                         // Deployment bytecode:
                         type(CompoundERC4626).creationCode,
                         // Constructor arguments:
-                        abi.encode(asset, comp, underlyingToCToken[asset], rewardRecipient, comptroller)
+                        abi.encode(
+                            asset,
+                            comp,
+                            underlyingToCToken[asset],
+                            rewardRecipient,
+                            comptroller
+                        )
                     )
                 )
             )
@@ -104,11 +125,13 @@ contract CompoundERC4626Factory is ERC4626Factory {
     /// @notice Updates the underlyingToCToken mapping in order to support newly added cTokens
     /// @dev This is needed because Compound doesn't have an onchain registry of cTokens corresponding to underlying assets.
     /// @param newCTokenIndices The indices of the new cTokens to register in the comptroller.allMarkets array
-    function updateUnderlyingToCToken(uint256[] calldata newCTokenIndices) external {
+    function updateUnderlyingToCToken(
+        uint256[] calldata newCTokenIndices
+    ) external {
         uint256 numCTokens = newCTokenIndices.length;
         ICERC20 cToken;
         uint256 index;
-        for (uint256 i; i < numCTokens;) {
+        for (uint256 i; i < numCTokens; ) {
             index = newCTokenIndices[i];
             cToken = comptroller.allMarkets(index);
             if (address(cToken) != cEtherAddress) {
