@@ -18,15 +18,27 @@ abstract contract ICERC20 is ERC20 {
 
     function exchangeRateStored() external view virtual returns (uint256);
 
+    function exchangeRateCurrent() external virtual returns (uint256);
+
     function accrualBlockTimestamp() external view virtual returns (uint256);
 
-    function redeemUnderlying(uint256 underlyingAmount) external virtual returns (uint256);
+    function redeemUnderlying(
+        uint256 underlyingAmount
+    ) external virtual returns (uint256);
 
     function balanceOfUnderlying(address) external virtual returns (uint256);
 
     function reserveFactorMantissa() external view virtual returns (uint256);
 
-    function interestRateModel() external view virtual returns (IInterestRateModel);
+    function interestRateModel()
+        external
+        view
+        virtual
+        returns (IInterestRateModel);
 
-    function initialExchangeRateMantissa() external view virtual returns (uint256);
+    function initialExchangeRateMantissa()
+        external
+        view
+        virtual
+        returns (uint256);
 }
