@@ -89,7 +89,6 @@ contract OvixERC4626Factory is ERC4626Factory {
 
         vault = new OvixERC4626{salt: bytes32(0)}(
             asset,
-            vix,
             oToken,
             rewardRecipient,
             comptroller

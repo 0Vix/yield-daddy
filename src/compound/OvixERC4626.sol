@@ -44,9 +44,6 @@ contract OvixERC4626 is ERC4626 {
     /// Immutable params
     /// -----------------------------------------------------------------------
 
-    /// @notice The VIX token contract
-    ERC20 public immutable vix;
-
     /// @notice The Ovix oToken contract
     ICERC20 public immutable oToken;
 
@@ -60,10 +57,9 @@ contract OvixERC4626 is ERC4626 {
     /// Constructor
     /// -----------------------------------------------------------------------
 
-    constructor(ERC20 asset_, ERC20 comp_, ICERC20 oToken_, address rewardRecipient_, IComptroller comptroller_)
+    constructor(ERC20 asset_, ICERC20 oToken_, address rewardRecipient_, IComptroller comptroller_)
         ERC4626(asset_, _vaultName(asset_), _vaultSymbol(asset_))
     {
-        vix = comp_;
         oToken = oToken_;
         comptroller = comptroller_;
         rewardRecipient = rewardRecipient_;
@@ -75,6 +71,7 @@ contract OvixERC4626 is ERC4626 {
 
     /// @notice Claims liquidity mining rewards from Ovix and sends it to rewardRecipient
     function claimRewards() external {
+        ERC20 vix = ERC20(comptroller.getVixAddress());
         address[] memory holders = new address[](1);
         holders[0] = address(this);
         ICERC20[] memory oTokens = new ICERC20[](1);
@@ -151,9 +148,8 @@ contract OvixERC4626 is ERC4626 {
         return oToken.viewExchangeRate();
     }
 
-    // accumulated preVIX rewards
-    function preVIXBalance() public view returns (uint256) {
-        return vix.balanceOf(address(this));
+    function vix() public view returns (ERC20) {
+        return ERC20(comptroller.getVixAddress());
     }
 
     /// -----------------------------------------------------------------------
