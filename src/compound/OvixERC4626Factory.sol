@@ -26,8 +26,6 @@ contract OvixERC4626Factory is ERC4626Factory {
     /// Immutable params
     /// -----------------------------------------------------------------------
 
-    /// @notice The COMP token contract
-    ERC20 public immutable vix;
 
     /// @notice The address that will receive the liquidity mining rewards (if any)
     address public immutable rewardRecipient;
@@ -57,7 +55,6 @@ contract OvixERC4626Factory is ERC4626Factory {
         comptroller = comptroller_;
         oNativeAddress = oNativeAddress_;
         rewardRecipient = rewardRecipient_;
-        vix = ERC20(comptroller_.getVixAddress());
         // initialize underlyingToOToken
         ICERC20[] memory allOTokens = comptroller_.getAllMarkets();
         uint256 numOTokens = allOTokens.length;
@@ -110,7 +107,7 @@ contract OvixERC4626Factory is ERC4626Factory {
                         // Constructor arguments:
                         abi.encode(
                             asset,
-                            vix,
+                            comptroller.getVixAddress(),
                             underlyingToOToken[asset],
                             rewardRecipient,
                             comptroller
