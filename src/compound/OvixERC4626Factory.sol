@@ -107,7 +107,6 @@ contract OvixERC4626Factory is ERC4626Factory {
                         // Constructor arguments:
                         abi.encode(
                             asset,
-                            comptroller.getVixAddress(),
                             underlyingToOToken[asset],
                             rewardRecipient,
                             comptroller
